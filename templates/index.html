@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Binance Whale Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="left-controls">
+        <div class="control-block symbol-picker-block">
+          <label for="symbol-search">Market</label>
+          <div class="combo-box" id="symbol-combo">
+            <input id="symbol-search" type="text" placeholder="Search symbol..." autocomplete="off" />
+            <button id="symbol-toggle" class="icon-button" type="button" aria-label="Toggle market list">▾</button>
+            <div id="symbol-dropdown" class="dropdown hidden"></div>
+          </div>
+        </div>
+
+        <div class="control-block pause-block">
+          <label>&nbsp;</label>
+          <button id="pause-button" class="primary-button" type="button">Pause</button>
+        </div>
+
+        <div class="control-block reset-block">
+          <label>&nbsp;</label>
+          <button id="reset-pan-button" class="secondary-button hidden" type="button">Reset orientation</button>
+        </div>
+
+        <div class="control-block settings-block">
+          <label>&nbsp;</label>
+          <button id="settings-button" class="secondary-button" type="button">Settings</button>
+        </div>
+      </div>
+
+      <div class="brand-block">
+        <span class="brand-title">Whale Tracker</span>
+        <img class="brand-logo" src="{{ url_for('static', filename='whale-logo.svg') }}" alt="Whale Tracker logo" />
+      </div>
+    </header>
+
+    <section id="settings-panel" class="settings-panel hidden">
+      <div class="settings-grid">
+        <div class="control-block">
+          <label for="interval-select">Period per candle</label>
+          <select id="interval-select">
+            <option value="1s">1 second</option>
+            <option value="3s">3 seconds</option>
+            <option value="5s" selected>5 seconds</option>
+            <option value="15s">15 seconds</option>
+            <option value="1m">1 minute</option>
+            <option value="3m">3 minutes</option>
+            <option value="5m">5 minutes</option>
+            <option value="15m">15 minutes</option>
+          </select>
+        </div>
+
+        <div class="control-block toggle-row">
+          <label for="show-circles-toggle">Show trade circles</label>
+          <input id="show-circles-toggle" type="checkbox" checked />
+        </div>
+
+        <div class="control-block toggle-row">
+          <label for="accumulate-trades-toggle">Accumulate short-frame-trades</label>
+          <input id="accumulate-trades-toggle" type="checkbox" />
+        </div>
+
+        <div class="control-block toggle-row">
+          <label for="show-regimes-toggle">Show regime segmentation</label>
+          <input id="show-regimes-toggle" type="checkbox" checked />
+        </div>
+
+        <div class="control-block toggle-row">
+          <label for="show-sr-toggle">Show resistance bands</label>
+          <input id="show-sr-toggle" type="checkbox" checked />
+        </div>
+
+        <div class="control-block toggle-row">
+          <label for="flow-visible-scale-toggle">Scale lower panels to visible window</label>
+          <input id="flow-visible-scale-toggle" type="checkbox" checked />
+        </div>
+      </div>
+    </section>
+
+    <main class="dashboard-grid">
+      <section class="chart-card chart-main-card">
+        <div class="card-header">
+          <div>
+            <h1 id="market-title">BTC/USDT</h1>
+            <p id="market-subtitle">Live Binance spot market feed</p>
+          </div>
+          <div class="stats-strip">
+            <span id="last-price">--</span>
+            <span id="last-trade">Last trade: --</span>
+            <span id="largest-visible">Largest visible trade: --</span>
+          </div>
+          <div class="help-wrap">
+            <button class="help-dot" type="button">?</button>
+            <div class="help-pop">
+              <strong>Main price panel</strong>
+              <p>Price candles, trade circles, regime zones, and optional resistance bands.</p>
+              <p>Candles show the selected bar interval. Circles mark individual or accumulated trades, with size proportional to trade size. The current price is kept vertically centered. Regime zones are a simple, reliable summary of recent flow: directional impulse, buy pressure, sell pressure, or chop. Orange lines show estimated support and resistance likelihood across the full chart width. Stronger evidence becomes more opaque, weak evidence stays very faint.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="scale-controls">
+          <div class="control-block slider-block">
+            <label for="price-zoom">Main chart zoom</label>
+            <div class="slider-wrap">
+              <input id="price-zoom" type="range" min="0" max="200" value="100" />
+              <div class="slider-default-marker"></div>
+            </div>
+          </div>
+        </div>
+
+        <canvas id="main-canvas"></canvas>
+      </section>
+
+      <section class="chart-card chart-volume-card">
+        <div class="card-header compact">
+          <div>
+            <h2>Trade flow</h2>
+            <p>Buys above the center line, sells below.</p>
+          </div>
+          <div class="help-wrap">
+            <button class="help-dot" type="button">?</button>
+            <div class="help-pop">
+              <strong>Trade flow</strong>
+              <p>A fast tape view of who is pushing harder right now.</p>
+              <p>Each thin bar is a trade. Green bars above the center are buyer-initiated trades. Red bars below are seller-initiated trades. With visible-window scaling on, the tallest visible trade uses the full panel height, which makes current activity easier to read.</p>
+            </div>
+          </div>
+        </div>
+        <canvas id="volume-canvas"></canvas>
+      </section>
+
+      <section class="chart-card chart-notional-card">
+        <div class="card-header compact">
+          <div>
+            <h2>Signed notional dominance</h2>
+            <p>Top green for buyer-initiated notional, bottom red for seller-initiated notional.</p>
+          </div>
+          <div class="help-wrap">
+            <button class="help-dot" type="button">?</button>
+            <div class="help-pop">
+              <strong>Signed notional dominance</strong>
+              <p>This shows which side is spending more actual money, not just more coins.</p>
+              <p>Each column aggregates price × size in a short time bucket. Green is buyer-initiated notional, red is seller-initiated notional. This often gives a cleaner view of pressure than raw trade size alone.</p>
+            </div>
+          </div>
+        </div>
+        <canvas id="notional-canvas"></canvas>
+      </section>
+    </main>
+
+    <footer class="status-bar">
+      <span id="status-pill" class="status-pill status-neutral">Connecting…</span>
+      <span>Regimes adapt their confirmation window to the selected candle size.</span>
+      <span>The orange field is computed from repeated trading, traded notional, seller/buyer skew, and how price reacted afterward. Nearby prices are smoothed together so close likely levels appear as gradients.</span>
+    </footer>
+  </div>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
