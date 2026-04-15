@@ -40,7 +40,7 @@ Create and activate a Conda environment:
 
 ```bash
 conda create -n whale-tracker python=3.11 -y
-conda activate whale-tracker
+conda activate WhaleTracker_Dashboard
 ```
 
 Install dependencies:
